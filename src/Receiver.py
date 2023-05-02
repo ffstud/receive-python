@@ -5,11 +5,11 @@ import time
 
 
 class Receiver:
-    def __init__(self, dropOffFolder, port):
+    def __init__(self, target_folder, port):
         self.transmissions = {}
-        self.digest = PacketDigest(dropOffFolder)
-        self.dropOffFolder = dropOffFolder
-        self.sequencer = PacketSequencer(128, 1024, self.digest.continueSequence, self.digest.cancelSequence)
+        self.digest = PacketDigest(target_folder)
+        self.target_folder = target_folder
+        self.sequencer = PacketSequencer(128, 1024, self.digest.continue_sequence, self.digest.cancel_sequence)
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self.socket.bind(("", port))

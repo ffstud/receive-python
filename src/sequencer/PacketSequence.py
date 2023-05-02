@@ -12,8 +12,8 @@ class PacketSequencer:
     def push(self, packet, transmissionId: int):
         try:
             sequence = self.openSequences.setdefault(transmissionId, OpenPacketSequence())
-            sequence.cachedPackets.append(packet)
-            if len(sequence.cachedPackets) > self.maxCachedPacketsPerSequence:
+            sequence.cached_packets.append(packet)
+            if len(sequence.cached_packets) > self.maxCachedPacketsPerSequence:
                 del self.openSequences[transmissionId]
                 self.cancelSequence(transmissionId)
 
@@ -21,8 +21,8 @@ class PacketSequencer:
             if not continue_sequence:
                 del self.openSequences[transmissionId]
             else:
-                sequence.nextSequenceNumber += 1
-                cache = sequence.cachedPackets
+                sequence.next_sequence_number += 1
+                cache = sequence.cached_packets
                 if len(cache) > 0:
                     cache.sort(key=lambda p: p.getSequenceNumber())
                     while len(cache) > 0:
@@ -32,10 +32,10 @@ class PacketSequencer:
                             cache.clear()
                             del self.openSequences[transmissionId]
                         else:
-                            sequence.nextSequenceNumber += 1
+                            sequence.next_sequence_number += 1
         except Exception:
             self.cancelSequence(transmissionId)
 
         while len(self.openSequences) > self.maxOpenSequences:
-            oldest_sequence_id = min(self.openSequences, key=lambda k: self.openSequences[k].openedAt)
+            oldest_sequence_id = min(self.openSequences, key=lambda k: self.openSequences[k].opened_at)
             del self.openSequences[oldest_sequence_id]
