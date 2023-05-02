@@ -62,7 +62,6 @@ class PacketDigest:
             if hashShould == hashActual:
                 print("File successfully transferred")
                 try:
-                    file.flush()
                     file.close()
                 except Exception as e:
                     print(e)
