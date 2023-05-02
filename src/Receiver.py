@@ -56,7 +56,7 @@ class Receiver:
                 else:
                     packet = DataPacket(data)
                     self.sequencer.push(packet, transmission_id)
-                    print(packet)
+                    # print(packet)
             except UnicodeDecodeError as e:
                 print(e)
 

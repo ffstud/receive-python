@@ -4,7 +4,6 @@ import hashlib
 from src.packet.InitializePacket import *
 from src.packet.FinalizePacket import *
 from src.packet.DataPacket import *
-from src.FileReference import *
 
 
 class PacketDigest:
@@ -31,31 +30,32 @@ class PacketDigest:
             os.remove(path)
         os.makedirs(os.path.dirname(path), exist_ok=True)
 
-        with open(path, "wb") as file:
-            self.openFiles[transmission_id] = path
+        file = open(path, "ab")
+        self.openFiles[transmission_id] = (file, path)
+
         return True
 
     def handle_data_packet(self, transmission_id, data_packet: DataPacket) -> bool:
-        if(data_packet.sequence_number == 0):
+        if data_packet.sequence_number == 0:
             return False
-        path = self.openFiles.get(transmission_id)
-        if path is None:
+        fileEntry = self.openFiles.get(transmission_id)
+        if fileEntry is None:
             raise RuntimeError("no such open file")
         try:
-            with open(path, "ab") as file:
-                file.write(data_packet.data)
+            fileEntry[0].write(data_packet.data)
         except Exception as e:
             print(e)
             traceback.print_exc()
             return False
         return True
 
-    def handle_finalize_packet(self, transmissionId, finalizePacket: FinalizePacket) -> bool:
-        path = self.openFiles.get(transmissionId)
+    def handle_finalize_packet(self, transmission_id, finalize_packet: FinalizePacket) -> bool:
+        path = self.openFiles[transmission_id][1]
         if self.openFiles is None:
             raise RuntimeWarning("no such open file")
         try:
-            hashShould = finalizePacket.getMd5()
+            self.openFiles[transmission_id][0].close()
+            hashShould = finalize_packet.getMd5()
             with open(path, "rb") as file:
                 hashActual = hashlib.md5(file.read()).digest()
 
@@ -74,8 +74,8 @@ class PacketDigest:
 
         return False
 
-    def cancelSequence(self, transmissionId):
+    def cancelSequence(self, transmission_id):
         if self.openFiles:
-            self.openFiles.pop(transmissionId)
+            del (self.openFiles[transmission_id])
         else:
             FileNotFoundError("no such open file")
