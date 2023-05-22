@@ -1,6 +1,3 @@
-import struct
-import array
-import codecs
 
 class PacketInterpreter:
     @staticmethod

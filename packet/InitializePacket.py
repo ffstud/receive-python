@@ -1,9 +1,12 @@
+import codecs
+import struct
+
 from packet.Packet import *
 
 
 # noinspection PyRedeclaration
 class InitializePacket(Packet):
-    HEADER_SIZE = 6
+
     def __init__(self, data, length):
         super().__init__(PacketInterpreter.getTransmissionId(data), PacketInterpreter.getSequenceNumber(data))
         self.max_sequence_number = PacketInterpreter.getUIntAt(data, self.HEADER_SIZE)
@@ -16,20 +19,20 @@ class InitializePacket(Packet):
         return self.max_sequence_number
 
     def setMaxSequenceNumber(self, maxSequenceNumber):
-        self.maxSequenceNumber = maxSequenceNumber
+        self.max_sequence_number = maxSequenceNumber
 
     def getFileName(self):
         return self.fileName
 
     def setFileName(self, fileName):
-        self.fileName = fileName
+        self.file_name = fileName
 
     def serialize(self):
         header = super().serialize()
-        fileNameBytes = codecs.encode(self.fileName, 'utf-8')
+        fileNameBytes = codecs.encode(self.file_name, 'utf-8')
         payloadLength = len(fileNameBytes) + 4
         payloadFormat = f">I{payloadLength}s"
-        payload = struct.pack(payloadFormat, self.maxSequenceNumber, fileNameBytes)
+        payload = struct.pack(payloadFormat, self.max_sequence_number, fileNameBytes)
         return header + payload
 
     def __str__(self):

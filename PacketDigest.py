@@ -18,7 +18,7 @@ class PacketDigest:
             return self.handle_data_packet(transmission_id, packet)
         elif isinstance(packet, FinalizePacket):
             return self.handle_finalize_packet(transmission_id, packet)
-        return False
+        return True
 
     def handle_init_packet(self, transmission_id, seq_nr: int, packet: InitializePacket) -> bool:
         if seq_nr != 0:
@@ -32,7 +32,6 @@ class PacketDigest:
 
         file = open(path, "ab")
         self.open_files[transmission_id] = (file, path)
-
         return True
 
     def handle_data_packet(self, transmission_id, data_packet: DataPacket) -> bool:
@@ -72,7 +71,7 @@ class PacketDigest:
         except Exception as ex:
             print(ex)
 
-        return False
+        return True
 
     def cancel_sequence(self, transmission_id):
         if self.open_files:

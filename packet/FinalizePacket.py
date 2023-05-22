@@ -1,10 +1,10 @@
 from packet.Packet import *
-
+import struct
 
 class FinalizePacket(Packet):
-    def __init__(self, data, len):
+    def __init__(self, data, length):
         super().__init__(PacketInterpreter.getTransmissionId(data), PacketInterpreter.getSequenceNumber(data))
-        self.md5 = PacketInterpreter.getByteArrayAt(data, HEADER_SIZE, len - HEADER_SIZE)
+        self.md5 = PacketInterpreter.getByteArrayAt(data, self.HEADER_SIZE, length - self.HEADER_SIZE)
 
     def getMd5(self):
         return self.md5

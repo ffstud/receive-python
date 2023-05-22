@@ -1,23 +1,27 @@
 import socket
 from PacketDigest import *
-from sequencer.PacketSequence import *
+from packet.AcknowledgementPacket import *
 import time
 
 
 class Receiver:
-    def __init__(self, target_folder, port):
+    def __init__(self, transmission_id, port, target_folder, ack_ip, ack_port):
+        self.transmissionId = transmission_id
         self.transmissions = {}
-        self.digest = PacketDigest(target_folder)
         self.target_folder = target_folder
-        self.sequencer = PacketSequencer(128, 1024, self.digest.continue_sequence, self.digest.cancel_sequence)
+        self.digest = PacketDigest(target_folder)
+        # self.sequencer = PacketSequencer(128, 1024, self.digest.continue_sequence, self.digest.cancel_sequence)
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self.socket.bind(("", port))
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         except Exception as e:
             print(e)
+        self.ack_ip = ack_ip
+        self.ack_port = ack_port
 
-    def print_packet(self, packet):
+    @staticmethod
+    def print_packet(packet):
         print("Received packet:")
         print(packet)
 
@@ -36,7 +40,6 @@ class Receiver:
                     max_sequence_number = packet.getMaxSequenceNumber()
 
                     self.transmissions[transmission_id] = max_sequence_number
-                    self.sequencer.push(packet, transmission_id)
 
                     print("Received initialization packet at:", time.time())
                     print(InitializePacket.__str__(packet))
@@ -45,18 +48,28 @@ class Receiver:
                     if transmission_id not in self.transmissions:
                         print("Did not receive initialization packet before, abort transmission")
                         break
-                # check for finalize or data packet
-                if sequence_number == (self.transmissions[transmission_id] + 1):
-                    print("This is the self.transmissions[transmission_id] of the Term: " + str(self.transmissions))
-                    packet = FinalizePacket(data, len(data))
-                    self.sequencer.push(packet, transmission_id)
-                    print("Received finalize packet at:", time.time())
-
-                    print(FinalizePacket.__str__(packet))
+                    # check for finalize or data packet
+                    if sequence_number == (self.transmissions[transmission_id] + 1):
+                        print("This is the self.transmissions[transmission_id] of the Term: " + str(self.transmissions))
+                        packet = FinalizePacket(data, len(data))
+                        print("Received finalize packet at:", time.time())
+                        print(FinalizePacket.__str__(packet))
+                    else:
+                        packet = DataPacket(data)
+                        packet.sequence_number = packet.sequence_number+1
+                if self.digest.continue_sequence(transmission_id, packet):
+                    self.sendAcknowledgementPacket(transmission_id, sequence_number)
                 else:
-                    packet = DataPacket(data)
-                    self.sequencer.push(packet, transmission_id)
+                    BaseException("Error while handling packet")
+                    print(packet)
                     # print(packet)
             except UnicodeDecodeError as e:
                 print(e)
 
+    def sendAcknowledgementPacket(self, transmission_id, sequence_number):
+        ackPaket = AcknowledgementPacket(transmission_id, sequence_number)
+        byte = ackPaket.serialize()
+
+        udp_packet = struct.pack("!%ds" % len(byte), byte)
+
+        self.socket.sendto(udp_packet, (self.ack_ip, self.ack_port))
