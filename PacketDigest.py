@@ -71,6 +71,8 @@ class PacketDigest:
         except Exception as ex:
             print(ex)
 
+        self.open_files.pop(transmission_id)
+
         return True
 
     def cancel_sequence(self, transmission_id):
