@@ -5,11 +5,12 @@ import time
 
 
 class Receiver:
-    def __init__(self, transmission_id, port, target_folder, ack_ip, ack_port):
+    def __init__(self, transmission_id, port, target_folder, ack_ip, ack_port, operating_mode):
         self.transmissionId = transmission_id
         self.transmissions = {}
         self.target_folder = target_folder
         self.digest = PacketDigest(target_folder)
+        self.operating_mode = operating_mode
         # self.sequencer = PacketSequencer(128, 1024, self.digest.continue_sequence, self.digest.cancel_sequence)
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -58,7 +59,8 @@ class Receiver:
                         packet = DataPacket(data)
                         packet.sequence_number = packet.sequence_number+1
                 if self.digest.continue_sequence(transmission_id, packet):
-                    self.sendAcknowledgementPacket(transmission_id, sequence_number)
+                    if self.operating_mode == 1:
+                        self.sendAcknowledgementPacket(transmission_id, sequence_number)
                 else:
                     BaseException("Error while handling packet")
                     print(packet)
