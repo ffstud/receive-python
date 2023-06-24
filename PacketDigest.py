@@ -1,6 +1,7 @@
 import os
 import traceback
 import hashlib
+import time
 from packet.InitializePacket import *
 from packet.FinalizePacket import *
 from packet.DataPacket import *
@@ -59,7 +60,6 @@ class PacketDigest:
                 hashActual = hashlib.md5(file.read()).digest()
 
             if hashShould == hashActual:
-                print("File successfully transferred")
                 try:
                     file.close()
                 except Exception as e:
@@ -72,6 +72,8 @@ class PacketDigest:
             print(ex)
 
         self.open_files.pop(transmission_id)
+        print("Processed finalize packet at: " + str(time.time() * 1000))
+        print("File successfully transferred")
 
         return True
 

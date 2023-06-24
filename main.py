@@ -12,8 +12,8 @@ def main():
     elif operating_mode == 1 and len(sys.argv) != 7:
         print("Usage: <operatingMode> <transmissionId> <port> <targetFolder> <ackIp> <ackPort>")
         return
-    elif operating_mode == 2 and len(sys.argv)!= 8:
-        print("Usage: <operatingMode> <transmissionId> <port> <targetFolder> <ackIp> <ackPort> <windowSize>")
+    elif operating_mode == 2 and len(sys.argv)!= 10:
+        print("Usage: <operatingMode> <transmissionId> <port> <targetFolder> <ackIp> <ackPort> <windowSize> <windowTimeout> <dupAckDelay>")
         return
 
 
@@ -35,9 +35,23 @@ def main():
     except IndexError:
         ack_port = -1
 
+    try:
+        window_size = int(sys.argv[7])
+    except IndexError:
+        window_size = -1
+
+    try:
+        window_timeout = int(sys.argv[8])
+    except IndexError:
+        window_timeout = -1
+
+    try:
+        duplicate_ack_delay = int(sys.argv[9])
+    except IndexError:
+        duplicate_ack_delay = -1
 
 
-    Receiver(transmission_id, port, target_folder, socket.gethostbyname(ack_ip), ack_port, operating_mode).start()
+    Receiver(transmission_id, port, target_folder, socket.gethostbyname(ack_ip), ack_port, operating_mode, window_size, window_timeout, duplicate_ack_delay).start()
 
 if __name__ == '__main__':
     try:
