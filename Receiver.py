@@ -29,11 +29,11 @@ class Receiver:
         self.ack_ip = ack_ip
         self.ack_port = ack_port
 
-    def has_finalize_packet(self, packet_list):
-        return any(packet.getSequenceNumber == 0 for packet in packet_list)
+    def has_finalize_packet(self, list):
+        return any(isinstance(packet, FinalizePacket) for packet in list)
 
-    def has_packet_with_sequence_number(self, packet_list, seq_number):
-        return any(packet.getSequenceNumber == seq_number for packet in packet_list)
+    def has_packet_with_sequence_number(self, list, sequence_number):
+        return any(packet.sequence_number == sequence_number for packet in list)
     @staticmethod
     def print_packet(packet):
         print("Received packet:")
@@ -46,14 +46,13 @@ class Receiver:
             try:
                 try:
                     data, addr = self.socket.recvfrom(buffer_size)
-                except Exception as e:
+                except TimeoutError as e:
                     #transmission of window is complete
                     if self.operating_mode == 2:
                         # check if window is ready for processing and is filled or is last window
-                        if (not self.missing_packets) and len(
-                                self.window_buffer) == self.window_size or self.has_finalize_packet(
-                                        self.window_buffer) and len(self.window_buffer) == self.transmissions.get(
-                                    self.transmissionId) - self.window_start + 2:
+                        if (not self.missing_packets) and (len(
+                                self.window_buffer) == self.window_size or self.has_finalize_packet(self.window_buffer) and len(self.window_buffer) == self.transmissions.get(
+                                    self.transmissionId) - self.window_start + 2):
                             self.process_window()
                         else:
                             self.check_for_missing_packets()
@@ -91,10 +90,8 @@ class Receiver:
                         packet = FinalizePacket(data, len(data))
                         print("Received finalize packet at:", time.time())
                         print(FinalizePacket.__str__(packet))
-                        self.sendAcknowledgementPacket(transmission_id, packet.getSequenceNumber())
                     else:
                         packet = DataPacket(data)
-                        packet.sequence_number = packet.sequence_number+1
                 if self.operating_mode != 2:
                     if self.digest.continue_sequence(transmission_id, packet):
                         if self.operating_mode == 1:
@@ -105,6 +102,7 @@ class Receiver:
                         # print(packet)
                 else:
                     self.window_buffer.append(packet)
+                    print(f"Added Packet:{packet.sequence_number}")
             except UnicodeDecodeError as e:
                 print(e)
 
@@ -112,18 +110,21 @@ class Receiver:
         ackPaket = AcknowledgementPacket(transmission_id, sequence_number)
 
         byte = ackPaket.serialize()
-
+        print(f"ACK:{sequence_number}")
         udp_packet = struct.pack("!%ds" % len(byte), byte)
         self.socket.sendto(udp_packet, (self.ack_ip, self.ack_port))
 
     def process_window(self):
         self.window_buffer.sort(key=lambda packet: packet.sequence_number)
-        lastPacket = self.window_buffer.__getitem__(len(self.window_buffer)-1) #TODO: check if correct
+        lastPacket = self.window_buffer.__getitem__(len(self.window_buffer)-1)
         if isinstance(lastPacket, Packet):
-            self.sendAcknowledgementPacket(self.transmissionId, lastPacket.getSequenceNumber()-1)
+            for packet in self.window_buffer:
+                print(packet.sequence_number)
+            print("-----------------------------------------------------")
+            self.sendAcknowledgementPacket(self.transmissionId, lastPacket.getSequenceNumber())
             for window_packet in self.window_buffer:
                 if isinstance(window_packet, Packet):
-                    if not self.digest.continue_sequence(self.transmissionId, window_packet):  # TODO: check if handle_data_packet works here
+                    if not self.digest.continue_sequence(self.transmissionId, window_packet):
                         print(f"Error while handling packet: {window_packet} ")
             self.window_start += self.window_size
 
@@ -146,18 +147,18 @@ class Receiver:
             else:
                 range_limit = self.window_start + self.window_size  # there is still another full window
 
+            print(f"Window Start:{self.window_start}")
+            print(f"Range Limit:{range_limit}")
             for i in range(self.window_start, range_limit):  # corrected range to range_limit
                 if not self.has_packet_with_sequence_number(self.window_buffer, i) and i not in self.missing_packets:
-                    print(f"---------------------------{i}")
+                    # print(f"Missing Packet: {i}")
                     self.missing_packets.append(i)
 
     def request_missing_packet(self, sequence_number):
-        if sequence_number in self.missing_packets:
-            self.sendAcknowledgementPacket(self.transmissionId, sequence_number)
-            time.sleep(self.duplicate_ack_delay / 1000)
-            self.sendAcknowledgementPacket(self.transmissionId, sequence_number)
-            time.sleep(self.duplicate_ack_delay / 1000)
+        print(f"DOUBLE ACKNOWLEDGE:{sequence_number}")
+        self.sendAcknowledgementPacket(self.transmissionId, sequence_number)
+        time.sleep(self.duplicate_ack_delay / 1000)
+        self.sendAcknowledgementPacket(self.transmissionId, sequence_number)
+        time.sleep(self.duplicate_ack_delay / 1000)
 
-            self.retransmitted_packets += 1
-            self.missing_packets.remove(
-                sequence_number)  # TODO
+        self.retransmitted_packets += 1
