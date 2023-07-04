@@ -56,7 +56,8 @@ class Receiver:
                         else:
                             self.check_for_missing_packets()
 
-                            self.request_missing_packet(self.missing_packets.pop())
+                            if len(self.missing_packets) != 0:
+                                self.request_missing_packet(self.missing_packets.pop())
                         continue
                     else:
                         print("Socket timed out!")
@@ -72,12 +73,12 @@ class Receiver:
 
                     self.transmissions[transmission_id] = max_sequence_number
 
-                    print("Received initialization packet at:", time.time())
+                    print("Received initialization packet at:", int(time.time() * 1000))
                     print(InitializePacket.__str__(packet))
                     # set timeout for socket in sliding window mode, since we have to recognize
                     # that the transmitter is finished with sending a window
                     if self.operating_mode == 2:
-                        self.socket.settimeout(self.window_timeout/100)
+                        self.socket.settimeout(self.window_timeout/1000)
                 else:
                     # no initialization packet seen before for this transmissionId -> abort transmission
                     if transmission_id not in self.transmissions:

@@ -72,7 +72,7 @@ class PacketDigest:
             print(ex)
 
         self.open_files.pop(transmission_id)
-        print("Processed finalize packet at: " + str(time.time() * 1000))
+        print("Processed finalize packet at: " + str(int(time.time() * 1000)))
         print("File successfully transferred")
 
         return True
