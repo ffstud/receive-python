@@ -19,7 +19,6 @@ class Receiver:
         self.missing_packets = []
         self.window_size = window_size
 
-        # self.sequencer = PacketSequencer(128, 1024, self.digest.continue_sequence, self.digest.cancel_sequence)
         try:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             self.socket.bind(("", port))
